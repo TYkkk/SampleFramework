@@ -10,5 +10,15 @@ namespace BaseFramework
         {
 
         };
+
+        public static UIData GetUIData(string uiName)
+        {
+            if (UIDataSettingDict.ContainsKey(uiName))
+            {
+                return UIDataSettingDict[uiName];
+            }
+
+            return null;
+        }
     }
 }

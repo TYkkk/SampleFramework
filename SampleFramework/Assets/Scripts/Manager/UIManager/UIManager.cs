@@ -115,14 +115,17 @@ namespace BaseFramework
 
         private UIBase GetOrCreateUI(string uiName)
         {
-            if (loadedUIDict.ContainsKey(uiName))
+            if (!UIDataSetting.GetUIData(uiName).Multi)
             {
-                if (loadedUIDict[uiName] != null && loadedUIDict[uiName].Count > 0)
+                if (loadedUIDict.ContainsKey(uiName))
                 {
-                    return loadedUIDict[uiName][0];
+                    if (loadedUIDict[uiName] != null && loadedUIDict[uiName].Count > 0)
+                    {
+                        return loadedUIDict[uiName][0];
+                    }
                 }
             }
-            
+
             GameObject createUI = Object.Instantiate(Resources.Load<GameObject>(UIDataSetting.UIDataSettingDict[uiName].UIPath));
 
             UIBase uiBase = createUI.GetComponent<UIBase>();
