@@ -6,6 +6,8 @@ namespace BaseFramework
 {
     public class CameraManager : Singleton<CameraManager>
     {
+        public const string MainCameraPrefabPath = "Camera/MainCamera";
+
         public Camera MainCamera => mainCamera;
 
         private Camera mainCamera;
@@ -28,10 +30,8 @@ namespace BaseFramework
         {
             ClearMainCamera();
 
-            GameObject obj = new GameObject("MainCamera");
-            mainCamera = obj.AddComponent<Camera>();
-            mainCamera.tag = "MainCamera";
-            obj.AddComponent<AudioListener>();
+            GameObject obj = Object.Instantiate(Resources.Load<GameObject>(MainCameraPrefabPath));
+            mainCamera = obj.GetComponent<Camera>();
         }
 
         private void ClearMainCamera()
