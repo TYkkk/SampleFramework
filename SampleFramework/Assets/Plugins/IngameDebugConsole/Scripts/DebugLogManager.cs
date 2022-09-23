@@ -267,6 +267,19 @@ namespace IngameDebugConsole
         // Recycled list view to handle the log items efficiently
         [SerializeField]
         private DebugLogRecycledListView recycledListView;
+
+        [SerializeField]
+        private Button DestroyBtn;
+
+        [SerializeField]
+        private GameObject DestroyConfirmPanel;
+
+        [SerializeField]
+        private Button DestroyConfirmBtn;
+
+        [SerializeField]
+        private Button DestroyCancelBtn;
+
 #pragma warning restore 0649
 
         private bool isLogWindowVisible = true;
@@ -472,6 +485,10 @@ namespace IngameDebugConsole
             filterWarningButton.GetComponent<Button>().onClick.AddListener(FilterWarningButtonPressed);
             filterErrorButton.GetComponent<Button>().onClick.AddListener(FilterErrorButtonPressed);
             snapToBottomButton.GetComponent<Button>().onClick.AddListener(() => SetSnapToBottom(true));
+
+            DestroyBtn.onClick.AddListener(DestroyBtnClicked);
+            DestroyConfirmBtn.onClick.AddListener(DestroyConfirmBtnClicked);
+            DestroyCancelBtn.onClick.AddListener(DestroyCancelBtnClicked);
 
             localTimeUtcOffset = System.DateTime.Now - System.DateTime.UtcNow;
             nullPointerEventData = new PointerEventData(null);
@@ -1127,6 +1144,21 @@ namespace IngameDebugConsole
                 filterErrorButton.color = filterButtonsNormalColor;
 
             FilterLogs();
+        }
+
+        private void DestroyBtnClicked()
+        {
+            DestroyConfirmPanel.SetActive(true);
+        }
+
+        private void DestroyConfirmBtnClicked()
+        {
+            Destroy(gameObject);
+        }
+
+        private void DestroyCancelBtnClicked()
+        {
+            DestroyConfirmPanel.SetActive(false);
         }
 
         // Search term has changed
