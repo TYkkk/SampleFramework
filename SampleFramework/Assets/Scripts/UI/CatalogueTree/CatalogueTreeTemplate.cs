@@ -80,6 +80,10 @@ namespace BaseFramework
                     var template = CatalogueTreeUtility.CreateTemplate(transform);
                     template.SetData(child, index + 1, childClickedEvent, this.dependPanel);
                     template.SelectAction = childClickedEvent;
+                    if (nodeData != null && nodeData.Action != null)
+                    {
+                        template.SelectAction += nodeData.Action;
+                    }
                     loadedTemplates.Add(template);
                 }
             }

@@ -13,6 +13,7 @@ namespace BaseFramework
         public List<CatalogueTreeNode> ChildNodes;
         public string Content;
         public CatalogueTreeTemplate Template;
+        public Action<CatalogueTreeNode> Action;
 
         public CatalogueTreeNode()
         {
