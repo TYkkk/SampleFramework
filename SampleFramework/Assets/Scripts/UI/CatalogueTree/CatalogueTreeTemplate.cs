@@ -71,6 +71,7 @@ namespace BaseFramework
             {
                 ArrowRectTransform.gameObject.SetActive(false);
                 IconObj.SetActive(true);
+                ArrowBtn.enabled = false;
             }
             else
             {
