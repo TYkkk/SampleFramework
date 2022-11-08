@@ -123,6 +123,20 @@ namespace BaseFramework
             }
         }
 
+        public static IEnumerator DelayAction(Action action, float time = 0)
+        {
+            if (time <= 0)
+            {
+                yield return new WaitForEndOfFrame();
+            }
+            else
+            {
+                yield return new WaitForSeconds(time);
+            }
+
+            action?.Invoke();
+        }
+
         private void AddMethod(List<MonoUpdateMethod> method, MonoUpdateMethod target)
         {
             if (method != null && !method.Contains(target))
