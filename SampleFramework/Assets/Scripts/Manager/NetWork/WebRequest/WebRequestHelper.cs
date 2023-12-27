@@ -27,7 +27,7 @@ namespace BaseFramework
 
             yield return request.SendWebRequest();
 
-            if (request.isNetworkError || request.isHttpError)
+            if (request.result == UnityWebRequest.Result.ConnectionError || request.result == UnityWebRequest.Result.ProtocolError)
             {
                 MDebug.LogError(request.error);
 
