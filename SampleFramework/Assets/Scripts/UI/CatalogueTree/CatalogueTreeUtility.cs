@@ -90,6 +90,91 @@ namespace BaseFramework
             }
         }
 
+        public static CatalogueTreeNode ConvertDeviceConfigToNode<T>(Dictionary<string, T> data, CatalogueTreeNode rootNode) where T : ICatalogueConfigData
+        {
+            Dictionary<string, CatalogueTreeNode> catalogueTreeNodeDict = new Dictionary<string, CatalogueTreeNode>();
+
+            foreach (var child in data.Keys)
+            {
+                CatalogueTreeNode catalogueTreeNode = new CatalogueTreeNode();
+                catalogueTreeNode.NodeID = $"{child}";
+                catalogueTreeNode.Content = data[child].Name;
+                catalogueTreeNode.ChildNodes = new List<CatalogueTreeNode>();
+
+                catalogueTreeNodeDict.Add(child, catalogueTreeNode);
+            }
+
+            foreach (var child in data.Keys)
+            {
+                if (child.LastIndexOf('.') >= 0)
+                {
+                    string parentID = child.Substring(0, child.LastIndexOf('.'));
+                    if (catalogueTreeNodeDict.ContainsKey(parentID))
+                    {
+                        catalogueTreeNodeDict[parentID].ChildNodes.Add(catalogueTreeNodeDict[child]);
+                        catalogueTreeNodeDict[child].ParentNode = catalogueTreeNodeDict[parentID];
+                    }
+                }
+                else
+                {
+                    if (rootNode != null)
+                    {
+                        catalogueTreeNodeDict[child].ParentNode = rootNode;
+                        rootNode.ChildNodes.Add(catalogueTreeNodeDict[child]);
+                    }
+                }
+            }
+
+            if (rootNode != null)
+            {
+                return rootNode;
+            }
+            else
+            {
+                return catalogueTreeNodeDict.Values.First();
+            }
+        }
+
+        public static List<CatalogueTreeNode> ConvertDeviceConfigToNode<T>(Dictionary<string, T> data) where T : ICatalogueConfigData
+        {
+            Dictionary<string, CatalogueTreeNode> catalogueTreeNodeDict = new Dictionary<string, CatalogueTreeNode>();
+
+            foreach (var child in data.Keys)
+            {
+                CatalogueTreeNode catalogueTreeNode = new CatalogueTreeNode();
+                catalogueTreeNode.NodeID = $"{child}";
+                catalogueTreeNode.Content = data[child].Name;
+                catalogueTreeNode.ChildNodes = new List<CatalogueTreeNode>();
+
+                catalogueTreeNodeDict.Add(child, catalogueTreeNode);
+            }
+
+            foreach (var child in data.Keys)
+            {
+                if (child.LastIndexOf('.') >= 0)
+                {
+                    string parentID = child.Substring(0, child.LastIndexOf('.'));
+                    if (catalogueTreeNodeDict.ContainsKey(parentID))
+                    {
+                        catalogueTreeNodeDict[parentID].ChildNodes.Add(catalogueTreeNodeDict[child]);
+                        catalogueTreeNodeDict[child].ParentNode = catalogueTreeNodeDict[parentID];
+                    }
+                }
+            }
+
+            List<CatalogueTreeNode> result = new List<CatalogueTreeNode>();
+
+            foreach (var child in catalogueTreeNodeDict.Values)
+            {
+                if (child.ParentNode == null)
+                {
+                    result.Add(child);
+                }
+            }
+
+            return result;
+        }
+
         public static List<CatalogueTreeNode> GetAllParents(CatalogueTreeNode targetNode, bool isDescending, bool containSelf)
         {
             List<CatalogueTreeNode> result = new List<CatalogueTreeNode>();

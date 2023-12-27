@@ -13,8 +13,6 @@ namespace BaseFramework
     {
         private string serverHost = "";
 
-        private char[] privateKey = new char[] { };
-
         private IEnumerator API(string query, ResultCallback callback = null, Dictionary<string, string> formData = null, int retryCount = 3, RequestErrorCallback errorCallback = null)
         {
             if (formData == null)

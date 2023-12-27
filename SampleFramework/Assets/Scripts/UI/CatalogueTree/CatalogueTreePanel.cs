@@ -24,7 +24,6 @@ namespace BaseFramework
 
         private void Awake()
         {
-            rootNodes = new List<CatalogueTreeNode>();
         }
 
         private void OnDestroy()
