@@ -21,26 +21,15 @@ namespace BaseFramework
 
         public bool IsOpened => isOpened;
 
-        public virtual void Awake()
-        {
-        }
-
         public virtual void Register()
         {
 
         }
 
-        public virtual void Opening()
-        {
-        }
-
         public virtual void Open()
         {
+            gameObject.SetActive(true);
             isOpened = true;
-        }
-
-        public virtual void Start()
-        {
         }
 
         public virtual void UnRegister()
@@ -50,11 +39,8 @@ namespace BaseFramework
 
         public virtual void Close()
         {
+            gameObject.SetActive(false);
             isOpened = false;
-        }
-
-        public virtual void OnDestroy()
-        {
         }
 
         public void InitUI(string uiName)

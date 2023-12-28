@@ -14,13 +14,13 @@ namespace BaseFramework
 
         private UIRoot uiRootTemplate;
 
-        private static Dictionary<string, List<UIBase>> loadedUIDict;
+        private static Dictionary<string, UIBase> loadedUIDict;
 
         public override void Init()
         {
             base.Init();
 
-            loadedUIDict = new Dictionary<string, List<UIBase>>();
+            loadedUIDict = new Dictionary<string, UIBase>();
 
             InitUIRoot();
         }
@@ -83,46 +83,30 @@ namespace BaseFramework
                     {
                         uiBase.Param.Add(child, param[child]);
                     }
+                    else
+                    {
+                        MDebug.LogWarning($"{uiBase.name} paramKey:{child} Replace");
+                        uiBase.Param[child] = param[child];
+                    }
                 }
             }
 
-            uiBase.Register();
-
-            uiBase.Opening();
-
             uiBase.transform.SetParent(UIRoot.LayerRoot.GetChild((int)UIDataSetting.UIDataSettingDict[uiName].Layer), false);
+
+            uiBase.Register();
 
             uiBase.Open();
 
             return uiBase;
         }
 
-        public UIBase OpenUIByGuid(string uiName, string guid)
+        private UIBase GetOrCreateUI(string uiName)
         {
             if (loadedUIDict.ContainsKey(uiName))
             {
-                foreach (var child in loadedUIDict[uiName])
+                if (loadedUIDict[uiName] != null)
                 {
-                    if (child.Guid == guid)
-                    {
-                        return child;
-                    }
-                }
-            }
-
-            return null;
-        }
-
-        private UIBase GetOrCreateUI(string uiName)
-        {
-            if (!UIDataSetting.GetUIData(uiName).Multi)
-            {
-                if (loadedUIDict.ContainsKey(uiName))
-                {
-                    if (loadedUIDict[uiName] != null && loadedUIDict[uiName].Count > 0)
-                    {
-                        return loadedUIDict[uiName][0];
-                    }
+                    return loadedUIDict[uiName];
                 }
             }
 
@@ -134,12 +118,27 @@ namespace BaseFramework
 
             if (!loadedUIDict.ContainsKey(uiName))
             {
-                loadedUIDict.Add(uiName, new List<UIBase>());
+                loadedUIDict.Add(uiName, uiBase);
             }
 
-            loadedUIDict[uiName].Add(uiBase);
-
             return uiBase;
+        }
+
+        public void HideUI(string uiName)
+        {
+            if (!loadedUIDict.ContainsKey(uiName))
+            {
+                return;
+            }
+
+            HideUI(loadedUIDict[uiName]);
+        }
+
+        public void HideUI(UIBase uiBase)
+        {
+            uiBase.UnRegister();
+
+            uiBase.Close();
         }
 
         public void CloseUI(string uiName)
@@ -149,21 +148,7 @@ namespace BaseFramework
                 return;
             }
 
-            for (int i = 0; i < loadedUIDict[uiName].Count; i++)
-            {
-                if (loadedUIDict[uiName][i] == null)
-                {
-                    continue;
-                }
-
-                loadedUIDict[uiName][i].UnRegister();
-
-                loadedUIDict[uiName][i].Close();
-
-                Object.Destroy(loadedUIDict[uiName][i].gameObject);
-            }
-
-            loadedUIDict.Remove(uiName);
+            CloseUI(loadedUIDict[uiName]);
         }
 
         public void CloseUI(UIBase uiBase)
@@ -172,7 +157,7 @@ namespace BaseFramework
 
             uiBase.Close();
 
-            loadedUIDict[uiBase.UIName].Remove(uiBase);
+            loadedUIDict.Remove(uiBase.UIName);
 
             Object.Destroy(uiBase.gameObject);
         }
@@ -184,14 +169,12 @@ namespace BaseFramework
         public string UIName;
         public string UIPath;
         public UILayer Layer;
-        public bool Multi;
 
         public UIData(string uiName, string uiPath, UILayer layer, bool multi = false)
         {
             UIName = uiName;
             UIPath = uiPath;
             this.Layer = layer;
-            this.Multi = multi;
         }
     }
 
