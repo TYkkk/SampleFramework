@@ -7,34 +7,42 @@ using Newtonsoft.Json;
 
 namespace BaseFramework
 {
-    public delegate void ResultCallback(int status, string data);
+    public delegate void ResultCallback(string retCode, object data, object paging);
     public delegate void RequestErrorCallback();
+
     public class WebRequestHelper : MonoSingleton<WebRequestHelper>
     {
-        private string serverHost = "";
+        public string AuthorizationToken = "";
 
-        private IEnumerator API(string query, ResultCallback callback = null, Dictionary<string, string> formData = null, int retryCount = 3, RequestErrorCallback errorCallback = null)
+        private string serverHost = "http://192.168.110.194:9901/api/v1/system/service";
+
+        private IEnumerator API_Post(string query, string postData, ResultCallback callback = null, int retryCount = 3, RequestErrorCallback errorCallback = null)
         {
-            if (formData == null)
-            {
-                formData = new Dictionary<string, string>();
-            }
+            var url = $"{serverHost}/{query}";
 
-            var url = $"{serverHost}/api/{query}/";
-
-            var request = UnityWebRequest.Post(url, formData);
+            var request = UnityWebRequest.Post(url, "POST");
             request.timeout = 10;
+            request.downloadHandler = new DownloadHandlerBuffer();
+            request.uploadHandler = new UploadHandlerRaw(System.Text.Encoding.UTF8.GetBytes(postData))
+            {
+                contentType = "application/json"
+            };
+
+            if (!string.IsNullOrEmpty(AuthorizationToken))
+            {
+                request.SetRequestHeader("Authorization", AuthorizationToken);
+            }
 
             yield return request.SendWebRequest();
 
-            if (request.isNetworkError || request.isHttpError)
+            if (request.result == UnityWebRequest.Result.ConnectionError || request.result == UnityWebRequest.Result.ProtocolError)
             {
                 MDebug.LogError(request.error);
 
                 if (retryCount > 0)
                 {
                     retryCount--;
-                    yield return API(query, callback, formData, retryCount);
+                    yield return API_Post(query, postData, callback, retryCount);
                 }
                 else
                 {
@@ -43,15 +51,77 @@ namespace BaseFramework
 
                 yield break;
             }
-
             WebRequestResultData resultData = JsonConvert.DeserializeObject<WebRequestResultData>(request.downloadHandler.text);
-            callback?.Invoke(resultData.status, resultData.data);
+
+            MDebug.Log(request.downloadHandler.text);
+
+            callback?.Invoke(resultData.retCode, resultData.data, resultData.paging);
+        }
+
+        public void CallPostApi(string query, string postData, ResultCallback callback = null, int retryCount = 3, RequestErrorCallback errorCallback = null)
+        {
+            StartCoroutine(API_Post(query, postData, callback, retryCount, errorCallback));
+        }
+
+        private IEnumerator API_Get(string query, Dictionary<string, string> param = null, ResultCallback callback = null, int retryCount = 3, RequestErrorCallback errorCallback = null)
+        {
+            var url = $"{serverHost}/{query}";
+
+            if (param != null)
+            {
+                string paramUrl = "";
+                foreach (var child in param.Keys)
+                {
+                    paramUrl += $"{child}={param[child]}&";
+                }
+
+                url = $"{url}?{paramUrl}";
+            }
+
+            var request = UnityWebRequest.Get(url);
+            request.timeout = 10;
+
+            if (!string.IsNullOrEmpty(AuthorizationToken))
+            {
+                request.SetRequestHeader("Authorization", AuthorizationToken);
+            }
+
+            yield return request.SendWebRequest();
+
+            if (request.result == UnityWebRequest.Result.ConnectionError || request.result == UnityWebRequest.Result.ProtocolError)
+            {
+                MDebug.LogError(request.error);
+
+                if (retryCount > 0)
+                {
+                    retryCount--;
+                    yield return API_Get(query, param, callback, retryCount);
+                }
+                else
+                {
+                    errorCallback?.Invoke();
+                }
+
+                yield break;
+            }
+            WebRequestResultData resultData = JsonConvert.DeserializeObject<WebRequestResultData>(request.downloadHandler.text);
+
+            MDebug.Log(request.downloadHandler.text);
+
+            callback?.Invoke(resultData.retCode, resultData.data, resultData.paging);
+        }
+
+        public void CallGetApi(string query, Dictionary<string, string> param = null, ResultCallback callback = null, int retryCount = 3, RequestErrorCallback errorCallback = null)
+        {
+            StartCoroutine(API_Get(query, param, callback, retryCount, errorCallback));
         }
     }
 
     public class WebRequestResultData
     {
-        public int status;
-        public string data;
+        public string retCode;
+        public string retMessage;
+        public object data;
+        public object paging;
     }
 }
