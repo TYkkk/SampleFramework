@@ -4,10 +4,12 @@ using UnityEngine;
 
 public class TableCellTemplate : BaseFramework.BaseMonoBehaviour
 {
+    public TableRowData RowData;
     public TableCellData CellData;
 
-    public virtual void SetData(TableCellData data, Dictionary<string, object> param)
+    public virtual void SetData(TableRowData rowData, TableCellData cellData, Dictionary<string, object> param)
     {
-        CellData = data;
+        RowData = rowData;
+        CellData = cellData;
     }
 }

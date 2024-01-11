@@ -8,10 +8,11 @@ public class TableCellTextTemplate : TableCellTemplate
     public Text ContentText;
     public Image BgImg;
 
-    public override void SetData(TableCellData data, Dictionary<string, object> param)
+    public override void SetData(TableRowData rowData, TableCellData cellData, Dictionary<string, object> param)
     {
-        base.SetData(data, param);
-        ContentText.text = data.Content;
+        base.SetData(rowData, cellData, param);
+
+        ContentText.text = cellData.Content;
         if (param != null)
         {
             if (param.ContainsKey(TableRowTemplate.BgColorParam))

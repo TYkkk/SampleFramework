@@ -11,8 +11,11 @@ public class TableModule : BaseFramework.BaseMonoBehaviour
     public Color BgColor = Color.white;
     public Color LineColor = Color.black;
 
-    public bool CustomColumnWidth = false;
+    public bool IsCustomColumnWidth = false;
     public float[] CustomColumnWidths;
+
+    public bool IsCustomRowHeight = false;
+    public float CustomRowHeight;
 
     public TableRowTemplate RowTemplate;
     public TableRowTemplate.SetCellMethod CustomSetCellMethod;
@@ -23,6 +26,8 @@ public class TableModule : BaseFramework.BaseMonoBehaviour
     private RectTransform tableRoot;
     private RectTransform tableLineRoot;
     private RectTransform tableTemplateRoot;
+
+    private float maxHeight;
 
     public void DrawTable()
     {
@@ -45,6 +50,13 @@ public class TableModule : BaseFramework.BaseMonoBehaviour
     {
         tableRoot = CreateObjectRoot("TableRoot", transform, BgColor);
         tableTemplateRoot = CreateObjectRoot("TableTemplateRoot", tableRoot, Color.clear);
+
+        maxHeight = tableRoot.rect.height;
+        if (IsCustomRowHeight)
+        {
+            maxHeight = CustomRowHeight * RowCount;
+        }
+
         DrawLine();
         DrawTableTemplate();
     }
@@ -66,15 +78,15 @@ public class TableModule : BaseFramework.BaseMonoBehaviour
     {
         tableLineRoot = CreateObjectRoot("TableLineRoot", tableRoot, Color.clear);
         CreateLine(tableRoot.rect.width, 0, 0);
-        CreateLine(tableRoot.rect.height, 0, 0, false);
-        CreateLine(tableRoot.rect.width, 0, -tableRoot.rect.height);
-        CreateLine(tableRoot.rect.height, tableRoot.rect.width, 0, false);
+        CreateLine(maxHeight, 0, 0, false);
+        CreateLine(tableRoot.rect.width, 0, -maxHeight);
+        CreateLine(maxHeight, tableRoot.rect.width, 0, false);
 
         if (RowCount > 0)
         {
             for (int i = 1; i < RowCount; i++)
             {
-                CreateLine(tableRoot.rect.width, 0, -i * tableRoot.rect.height / RowCount);
+                CreateLine(tableRoot.rect.width, 0, -i * maxHeight / RowCount);
             }
         }
 
@@ -83,23 +95,23 @@ public class TableModule : BaseFramework.BaseMonoBehaviour
             float tempTotalWidth = 0;
             for (int i = 0; i < ColumnCount - 1; i++)
             {
-                if (CustomColumnWidth)
+                if (IsCustomColumnWidth)
                 {
                     if (i < CustomColumnWidths.Length)
                     {
-                        CreateLine(tableRoot.rect.height, tempTotalWidth + CustomColumnWidths[i], 0, false);
+                        CreateLine(maxHeight, tempTotalWidth + CustomColumnWidths[i], 0, false);
                         tempTotalWidth += CustomColumnWidths[i];
                     }
                     else
                     {
                         var next = (tableRoot.rect.width - tempTotalWidth) / (ColumnCount - i);
-                        CreateLine(tableRoot.rect.height, tempTotalWidth + next, 0, false);
+                        CreateLine(maxHeight, tempTotalWidth + next, 0, false);
                         tempTotalWidth += next;
                     }
                 }
                 else
                 {
-                    CreateLine(tableRoot.rect.height, (i + 1) * tableRoot.rect.width / ColumnCount, 0, false);
+                    CreateLine(maxHeight, (i + 1) * tableRoot.rect.width / ColumnCount, 0, false);
                 }
             }
         }
@@ -109,12 +121,12 @@ public class TableModule : BaseFramework.BaseMonoBehaviour
     {
         ClearLoadedRowTemplate();
 
-        float templateHeight = tableRoot.rect.height / RowCount;
+        float templateHeight = maxHeight / RowCount;
         float[] templateWidths = new float[ColumnCount];
         float tempTotal = 0;
         for (int i = 0; i < templateWidths.Length; i++)
         {
-            if (CustomColumnWidth)
+            if (IsCustomColumnWidth)
             {
                 if (i < templateWidths.Length - 1 && i < CustomColumnWidths.Length)
                 {
@@ -150,7 +162,7 @@ public class TableModule : BaseFramework.BaseMonoBehaviour
                 continue;
             }
             rowDats[i].Width = tableTemplateRoot.rect.width;
-            rowDats[i].Height = tableTemplateRoot.rect.height / RowCount;
+            rowDats[i].Height = maxHeight / RowCount;
             for (int j = 0; j < rowDats[i].CellDatas.Length; j++)
             {
                 rowDats[i].CellDatas[j].Width = widths[j];

@@ -4,9 +4,8 @@ using UnityEngine;
 
 public class TableCellImageTemplate : TableCellTemplate
 {
-    public override void SetData(TableCellData data, Dictionary<string, object> param)
+    public override void SetData(TableRowData rowData, TableCellData cellData, Dictionary<string, object> param)
     {
-        base.SetData(data, param);
-
+        base.SetData(rowData, cellData, param);
     }
 }

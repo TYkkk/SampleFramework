@@ -14,7 +14,7 @@ public class TableRowTemplate : BaseFramework.BaseMonoBehaviour
     public const string BgColorParam = "BgColor";
     public const string TextColorParam = "TextColor";
 
-    public delegate void SetCellMethod(TableCellTemplate cellTemplate, TableCellData cellData);
+    public delegate void SetCellMethod(TableRowData tableRowData, TableCellTemplate cellTemplate, TableCellData cellData);
     public SetCellMethod CustomSetCellMethod;
 
     TableRowData rowData;
@@ -58,7 +58,7 @@ public class TableRowTemplate : BaseFramework.BaseMonoBehaviour
             rectTransform.anchoredPosition = new Vector2(totalWidth, 0);
             rectTransform.sizeDelta = new Vector2(rowData.CellDatas[i].Width, rowData.CellDatas[i].Height);
             totalWidth += rowData.CellDatas[i].Width;
-            CustomSetCellMethod?.Invoke(CellTemplate, rowData.CellDatas[i]);
+            CustomSetCellMethod?.Invoke(rowData, CellTemplate, rowData.CellDatas[i]);
             loadedCellTemplates[i] = CellTemplate;
         }
     }
