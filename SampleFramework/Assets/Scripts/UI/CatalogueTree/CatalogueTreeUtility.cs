@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
@@ -90,91 +91,6 @@ namespace BaseFramework
             }
         }
 
-        public static CatalogueTreeNode ConvertDeviceConfigToNode<T>(Dictionary<string, T> data, CatalogueTreeNode rootNode) where T : ICatalogueConfigData
-        {
-            Dictionary<string, CatalogueTreeNode> catalogueTreeNodeDict = new Dictionary<string, CatalogueTreeNode>();
-
-            foreach (var child in data.Keys)
-            {
-                CatalogueTreeNode catalogueTreeNode = new CatalogueTreeNode();
-                catalogueTreeNode.NodeID = $"{child}";
-                catalogueTreeNode.Content = data[child].Name;
-                catalogueTreeNode.ChildNodes = new List<CatalogueTreeNode>();
-
-                catalogueTreeNodeDict.Add(child, catalogueTreeNode);
-            }
-
-            foreach (var child in data.Keys)
-            {
-                if (child.LastIndexOf('.') >= 0)
-                {
-                    string parentID = child.Substring(0, child.LastIndexOf('.'));
-                    if (catalogueTreeNodeDict.ContainsKey(parentID))
-                    {
-                        catalogueTreeNodeDict[parentID].ChildNodes.Add(catalogueTreeNodeDict[child]);
-                        catalogueTreeNodeDict[child].ParentNode = catalogueTreeNodeDict[parentID];
-                    }
-                }
-                else
-                {
-                    if (rootNode != null)
-                    {
-                        catalogueTreeNodeDict[child].ParentNode = rootNode;
-                        rootNode.ChildNodes.Add(catalogueTreeNodeDict[child]);
-                    }
-                }
-            }
-
-            if (rootNode != null)
-            {
-                return rootNode;
-            }
-            else
-            {
-                return catalogueTreeNodeDict.Values.First();
-            }
-        }
-
-        public static List<CatalogueTreeNode> ConvertDeviceConfigToNode<T>(Dictionary<string, T> data) where T : ICatalogueConfigData
-        {
-            Dictionary<string, CatalogueTreeNode> catalogueTreeNodeDict = new Dictionary<string, CatalogueTreeNode>();
-
-            foreach (var child in data.Keys)
-            {
-                CatalogueTreeNode catalogueTreeNode = new CatalogueTreeNode();
-                catalogueTreeNode.NodeID = $"{child}";
-                catalogueTreeNode.Content = data[child].Name;
-                catalogueTreeNode.ChildNodes = new List<CatalogueTreeNode>();
-
-                catalogueTreeNodeDict.Add(child, catalogueTreeNode);
-            }
-
-            foreach (var child in data.Keys)
-            {
-                if (child.LastIndexOf('.') >= 0)
-                {
-                    string parentID = child.Substring(0, child.LastIndexOf('.'));
-                    if (catalogueTreeNodeDict.ContainsKey(parentID))
-                    {
-                        catalogueTreeNodeDict[parentID].ChildNodes.Add(catalogueTreeNodeDict[child]);
-                        catalogueTreeNodeDict[child].ParentNode = catalogueTreeNodeDict[parentID];
-                    }
-                }
-            }
-
-            List<CatalogueTreeNode> result = new List<CatalogueTreeNode>();
-
-            foreach (var child in catalogueTreeNodeDict.Values)
-            {
-                if (child.ParentNode == null)
-                {
-                    result.Add(child);
-                }
-            }
-
-            return result;
-        }
-
         public static List<CatalogueTreeNode> GetAllParents(CatalogueTreeNode targetNode, bool isDescending, bool containSelf)
         {
             List<CatalogueTreeNode> result = new List<CatalogueTreeNode>();
@@ -192,6 +108,42 @@ namespace BaseFramework
             }
 
             return result;
+        }
+
+        public static Dictionary<int, CatalogueTreeNode> CreateCatalogueTreeNodeDict<T>(T[] data, Action<Dictionary<int, CatalogueTreeNode>, T> action)
+        {
+            Dictionary<int, CatalogueTreeNode> treeDict = new Dictionary<int, CatalogueTreeNode>();
+            foreach (var child in data)
+            {
+                action?.Invoke(treeDict, child);
+            }
+
+            return treeDict;
+        }
+
+        public static List<CatalogueTreeNode> LinkCatalogueTreeNode(Dictionary<int, CatalogueTreeNode> treeDict)
+        {
+            List<CatalogueTreeNode> nodes = new List<CatalogueTreeNode>();
+            foreach (var child in treeDict.Keys)
+            {
+                if (treeDict[child].ParentID == null)
+                {
+                    nodes.Add(treeDict[child]);
+                }
+                else
+                {
+                    var parentNode = treeDict[int.Parse(treeDict[child].ParentID)];
+                    treeDict[child].ParentNode = treeDict[int.Parse(treeDict[child].ParentID)];
+                    if (parentNode.ChildNodes == null)
+                    {
+                        parentNode.ChildNodes = new List<CatalogueTreeNode>();
+                    }
+
+                    parentNode.ChildNodes.Add(treeDict[child]);
+                }
+            }
+
+            return nodes;
         }
 
         private static void AddParentNodeToList(List<CatalogueTreeNode> result, CatalogueTreeNode target)
