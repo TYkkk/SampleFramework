@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -17,17 +18,21 @@ public class TableModule : BaseFramework.BaseMonoBehaviour
     public bool IsCustomRowHeight = false;
     public float CustomRowHeight;
 
+    public RectTransform TableRoot;
+    public bool ResetRootHeight = false;
+
     public TableRowTemplate RowTemplate;
     public TableRowTemplate.SetCellMethod CustomSetCellMethod;
 
     private TableRowData[] rowDats;
     private List<TableRowTemplate> loadedTableRows;
 
-    private RectTransform tableRoot;
     private RectTransform tableLineRoot;
     private RectTransform tableTemplateRoot;
 
     private float maxHeight;
+
+    private Action<TableRowTemplate> rowTemplateSelectAction;
 
     public void DrawTable()
     {
@@ -37,24 +42,38 @@ public class TableModule : BaseFramework.BaseMonoBehaviour
 
     public void ClearTable()
     {
-
+        ClearLoadedRowTemplate();
+        if (tableLineRoot != null)
+            Destroy(tableLineRoot.gameObject);
+        if (tableTemplateRoot != null)
+            Destroy(tableTemplateRoot.gameObject);
     }
 
-    public void SetDataAndMethod(TableRowData[] rowDats, TableRowTemplate.SetCellMethod method)
+    public void SetDataAndMethod(TableRowData[] rowDats, TableRowTemplate.SetCellMethod method, Action<TableRowTemplate> selectAction = null)
     {
         this.rowDats = rowDats;
         CustomSetCellMethod = method;
+        rowTemplateSelectAction = selectAction;
     }
 
     private void Draw()
     {
-        tableRoot = CreateObjectRoot("TableRoot", transform, BgColor);
-        tableTemplateRoot = CreateObjectRoot("TableTemplateRoot", tableRoot, Color.clear);
+        if (TableRoot == null)
+        {
+            TableRoot = CreateObjectRoot("TableRoot", transform, BgColor);
+        }
 
-        maxHeight = tableRoot.rect.height;
+        tableTemplateRoot = CreateObjectRoot("TableTemplateRoot", TableRoot, Color.clear);
+
+        maxHeight = TableRoot.rect.height;
         if (IsCustomRowHeight)
         {
             maxHeight = CustomRowHeight * RowCount;
+        }
+
+        if (ResetRootHeight)
+        {
+            TableRoot.sizeDelta = new Vector2(TableRoot.sizeDelta.x, maxHeight);
         }
 
         DrawLine();
@@ -76,17 +95,17 @@ public class TableModule : BaseFramework.BaseMonoBehaviour
 
     private void DrawLine()
     {
-        tableLineRoot = CreateObjectRoot("TableLineRoot", tableRoot, Color.clear);
-        CreateLine(tableRoot.rect.width, 0, 0);
+        tableLineRoot = CreateObjectRoot("TableLineRoot", TableRoot, Color.clear);
+        CreateLine(TableRoot.rect.width, 0, 0);
         CreateLine(maxHeight, 0, 0, false);
-        CreateLine(tableRoot.rect.width, 0, -maxHeight);
-        CreateLine(maxHeight, tableRoot.rect.width, 0, false);
+        CreateLine(TableRoot.rect.width, 0, -maxHeight);
+        CreateLine(maxHeight, TableRoot.rect.width, 0, false);
 
         if (RowCount > 0)
         {
             for (int i = 1; i < RowCount; i++)
             {
-                CreateLine(tableRoot.rect.width, 0, -i * maxHeight / RowCount);
+                CreateLine(TableRoot.rect.width, 0, -i * maxHeight / RowCount);
             }
         }
 
@@ -104,14 +123,14 @@ public class TableModule : BaseFramework.BaseMonoBehaviour
                     }
                     else
                     {
-                        var next = (tableRoot.rect.width - tempTotalWidth) / (ColumnCount - i);
+                        var next = (TableRoot.rect.width - tempTotalWidth) / (ColumnCount - i);
                         CreateLine(maxHeight, tempTotalWidth + next, 0, false);
                         tempTotalWidth += next;
                     }
                 }
                 else
                 {
-                    CreateLine(maxHeight, (i + 1) * tableRoot.rect.width / ColumnCount, 0, false);
+                    CreateLine(maxHeight, (i + 1) * TableRoot.rect.width / ColumnCount, 0, false);
                 }
             }
         }
@@ -135,13 +154,13 @@ public class TableModule : BaseFramework.BaseMonoBehaviour
                 }
                 else
                 {
-                    templateWidths[i] = (tableRoot.rect.width - tempTotal) / (ColumnCount - i);
+                    templateWidths[i] = (TableRoot.rect.width - tempTotal) / (ColumnCount - i);
                     tempTotal += templateWidths[i];
                 }
             }
             else
             {
-                templateWidths[i] = tableRoot.rect.width / ColumnCount;
+                templateWidths[i] = TableRoot.rect.width / ColumnCount;
             }
         }
 
@@ -189,7 +208,7 @@ public class TableModule : BaseFramework.BaseMonoBehaviour
 
             TableRowTemplate tableRowTemplate = Instantiate(RowTemplate, tableTemplateRoot);
             tableRowTemplate.CustomSetCellMethod = CustomSetCellMethod;
-            tableRowTemplate.SetData(datas[i]);
+            tableRowTemplate.SetData(datas[i], rowTemplateSelectAction);
             if (loadedTableRows == null)
             {
                 loadedTableRows = new List<TableRowTemplate>();

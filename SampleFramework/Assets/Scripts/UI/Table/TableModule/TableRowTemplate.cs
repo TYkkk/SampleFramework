@@ -1,11 +1,14 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class TableRowTemplate : BaseFramework.BaseMonoBehaviour
 {
     public RectTransform MainRect;
+    public Button SelectBtn;
 
     public TableCellTextTemplate CellTextTemplate;
     public TableCellCustom01Template CellCustom01Template;
@@ -17,16 +20,23 @@ public class TableRowTemplate : BaseFramework.BaseMonoBehaviour
     public delegate void SetCellMethod(TableRowData tableRowData, TableCellTemplate cellTemplate, TableCellData cellData);
     public SetCellMethod CustomSetCellMethod;
 
+    public Transform CellRoot;
+    public GameObject SelectFalg;
+
     TableRowData rowData;
+    public TableRowData RowData => rowData;
 
     TableCellTemplate[] loadedCellTemplates;
 
-    public void SetData(TableRowData data)
+    public void SetData(TableRowData data, Action<TableRowTemplate> selectAction)
     {
         rowData = data;
 
         MainRect.anchoredPosition = new Vector2(0, -rowData.RowIndex * rowData.Height);
         MainRect.sizeDelta = new Vector2(rowData.Width, rowData.Height);
+
+        SelectBtn.onClick.RemoveAllListeners();
+        SelectBtn.onClick.AddListener(() => { selectAction?.Invoke(this); });
 
         DrawCell();
     }
@@ -54,7 +64,7 @@ public class TableRowTemplate : BaseFramework.BaseMonoBehaviour
             }
 
             var rectTransform = CellTemplate.gameObject.GetComponent<RectTransform>();
-            rectTransform.SetParent(transform, false);
+            rectTransform.SetParent(CellRoot, false);
             rectTransform.anchoredPosition = new Vector2(totalWidth, 0);
             rectTransform.sizeDelta = new Vector2(rowData.CellDatas[i].Width, rowData.CellDatas[i].Height);
             totalWidth += rowData.CellDatas[i].Width;
@@ -77,9 +87,11 @@ public class TableRowTemplate : BaseFramework.BaseMonoBehaviour
                 return Instantiate(CellImageTemplate);
             default:
                 return null;
-
         }
-
     }
 
+    public void SetSelectFlag(bool isShow)
+    {
+        SelectFalg.SetActive(isShow);
+    }
 }

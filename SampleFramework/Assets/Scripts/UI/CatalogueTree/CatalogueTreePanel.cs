@@ -7,74 +7,132 @@ using UnityEngine;
 
 namespace BaseFramework
 {
-    public class CatalogueTreePanel : MonoBehaviour
+    public class CatalogueTreePanel : BaseMonoBehaviour
     {
         public RectTransform ContentTransform;
         public RectTransform ScrollRectTransform;
 
-        private List<CatalogueTreeNode> rootNodes;
-        private CatalogueTreeNode CurrentSelectNode;
+        public List<CatalogueTreeNode> RootNodes;
+        public CatalogueTreeNode CurrentSelectNode;
 
-        public Action<CatalogueTreeNode> RootNodeClickedEvent;
-        public Action<CatalogueTreeNode> ChildNodeClickedEvent;
+        public Action<CatalogueTreeNode> NodeClickedEvent;
 
         public bool ShowSelectFlag = true;
 
-        private List<CatalogueTreeTemplate> loadedTemplates = new List<CatalogueTreeTemplate>();
+        public List<CatalogueTreeTemplate> LoadedTemplates = new List<CatalogueTreeTemplate>();
 
-        private void Awake()
-        {
-        }
+        public string TemplatePath = "UI/CatalogueTree/CatalogueTreeTemplate";
 
         private void OnDestroy()
         {
-            rootNodes = null;
+            RootNodes = null;
         }
 
         public void SetData(List<CatalogueTreeNode> root)
         {
-            rootNodes = root;
+            ClearLoadedTemplate();
+
+            RootNodes = root;
             CreateTemplate();
         }
 
         public void SetData(CatalogueTreeNode node)
         {
-            rootNodes = new List<CatalogueTreeNode>();
-            rootNodes.Add(node);
+            ClearLoadedTemplate();
+
+            RootNodes = new List<CatalogueTreeNode>();
+            RootNodes.Add(node);
 
             CreateTemplate();
         }
 
+        public void AddNode(CatalogueTreeNode node, bool createChild)
+        {
+            if (node.ParentNode == null)
+            {
+                if (RootNodes == null)
+                {
+                    RootNodes = new List<CatalogueTreeNode>();
+                }
+
+                var newNode = CatalogueTreeUtility.CopyCatalogueNode(node, null, createChild);
+
+                RootNodes.Add(newNode);
+
+                CatalogueTreeUtility.CreateTemplate(ContentTransform, TemplatePath, newNode, 0, NodeClickedEvent, this, LoadedTemplates);
+            }
+            else
+            {
+                if (RootNodes == null)
+                {
+                    return;
+                }
+
+                List<CatalogueTreeNode> parentNodes = new List<CatalogueTreeNode>();
+                var newNode = CatalogueTreeUtility.CopyCatalogueNode(node, null, true);
+                var resultNode = CollectNeedAddNodeParent(node, ref parentNodes, newNode);
+
+                for (int i = 0; i < parentNodes.Count; i++)
+                {
+                    var createNode = CatalogueTreeUtility.CopyCatalogueNode(resultNode, resultNode.ParentNode, true);
+                    CatalogueTreeUtility.LinkCatalogueTreeNode(parentNodes[i], createNode);
+                    parentNodes[i].Template.AddNode(createNode);
+                }
+            }
+        }
+
+        private CatalogueTreeNode CollectNeedAddNodeParent(CatalogueTreeNode node, ref List<CatalogueTreeNode> parentNodes, CatalogueTreeNode createNode)
+        {
+            GetNodesByID(RootNodes, node.ParentID, ref parentNodes);
+            if (parentNodes.Count == 0 && !string.IsNullOrEmpty(node.ParentNode.ParentID))
+            {
+                var newNode = CatalogueTreeUtility.CopyCatalogueNode(node.ParentNode, null, false);
+                CatalogueTreeUtility.LinkCatalogueTreeNode(newNode, createNode);
+                return CollectNeedAddNodeParent(node.ParentNode, ref parentNodes, newNode);
+            }
+            else
+            {
+                return createNode;
+            }
+        }
+
+        public void GetNodesByID(List<CatalogueTreeNode> treeNode, string id, ref List<CatalogueTreeNode> result)
+        {
+            foreach (var node in treeNode)
+            {
+                if (node.NodeID == id)
+                {
+                    result.Add(node);
+                }
+
+                if (node.ChildNodes != null && node.ChildNodes.Count > 0)
+                {
+                    GetNodesByID(node.ChildNodes, id, ref result);
+                }
+            }
+        }
+
         public void CreateTemplate()
         {
-            ClearLoadedTemplate();
-
-            foreach (var child in rootNodes)
+            foreach (var child in RootNodes)
             {
-                var template = CatalogueTreeUtility.CreateTemplate(ContentTransform);
-                template.SetData(child, 0, ChildNodeClickedEvent, this);
-                template.SelectAction = RootNodeClickedEvent;
-                if (child != null && child.Action != null)
-                {
-                    template.SelectAction += child.Action;
-                }
-                loadedTemplates.Add(template);
+                CatalogueTreeUtility.CreateTemplate(ContentTransform, TemplatePath, child, 0, NodeClickedEvent, this, LoadedTemplates);
             }
         }
 
         public void ClearLoadedTemplate()
         {
-            for (int i = 0; i < loadedTemplates.Count; i++)
+            for (int i = 0; i < LoadedTemplates.Count; i++)
             {
-                Destroy(loadedTemplates[i].gameObject);
+                Destroy(LoadedTemplates[i].gameObject);
             }
 
-            loadedTemplates.Clear();
+            LoadedTemplates.Clear();
         }
 
         public void SearchContent(string content, bool isPrecise)
         {
-            if (rootNodes == null || rootNodes.Count == 0 || string.IsNullOrEmpty(content))
+            if (RootNodes == null || RootNodes.Count == 0 || string.IsNullOrEmpty(content))
             {
                 return;
             }
@@ -82,7 +140,7 @@ namespace BaseFramework
             CatalogueTreeNode result = null;
             CatalogueTreeNode rootNode = null;
 
-            foreach (var child in rootNodes)
+            foreach (var child in RootNodes)
             {
                 result = CatalogueTreeUtility.GetNodeByContent(child, content, isPrecise);
                 if (result != null)
@@ -123,9 +181,9 @@ namespace BaseFramework
         {
             float result = 0;
 
-            if (rootNodes.Contains(treeNode))
+            if (RootNodes.Contains(treeNode))
             {
-                foreach (var child in rootNodes)
+                foreach (var child in RootNodes)
                 {
                     if (child == treeNode)
                     {
@@ -186,23 +244,90 @@ namespace BaseFramework
             }
         }
 
-        public void SelectNode(CatalogueTreeNode node)
+        public List<CatalogueTreeTemplate> GetAllTemplate()
         {
-            if (CurrentSelectNode == node)
+            List<CatalogueTreeTemplate> result = new List<CatalogueTreeTemplate>();
+            foreach (var child in LoadedTemplates)
             {
-                return;
+                CollectTemplate(child, result);
             }
 
-            if (CurrentSelectNode != null && CurrentSelectNode != node && ShowSelectFlag)
+            return result;
+        }
+
+        private void CollectTemplate(CatalogueTreeTemplate template, List<CatalogueTreeTemplate> collectList)
+        {
+            collectList.Add(template);
+            if (template.LoadedTemplates != null)
             {
-                CurrentSelectNode.Template.UnSelect();
+                foreach (var child in template.LoadedTemplates)
+                {
+                    CollectTemplate(child, collectList);
+                }
             }
+        }
 
-            CurrentSelectNode = node;
+        //public void SelectNode(CatalogueTreeNode node)
+        //{
+        //    if (CurrentSelectNode == node)
+        //    {
+        //        return;
+        //    }
 
-            if (ShowSelectFlag)
+        //    if (CurrentSelectNode != null && CurrentSelectNode != node && ShowSelectFlag)
+        //    {
+        //        CurrentSelectNode.Template.UnSelect();
+        //    }
+
+        //    CurrentSelectNode = node;
+
+        //    if (ShowSelectFlag)
+        //    {
+        //        CurrentSelectNode.Template.Select();
+        //    }
+        //}
+
+        public void CloseAllNode()
+        {
+            List<CatalogueTreeTemplate> cacheList = new List<CatalogueTreeTemplate>();
+            CollectNode(cacheList, LoadedTemplates);
+            for (int i = cacheList.Count - 1; i >= 0; i--)
             {
-                CurrentSelectNode.Template.Select();
+                cacheList[i].CloseNode();
+            }
+        }
+
+        private void CollectNode(List<CatalogueTreeTemplate> result, List<CatalogueTreeTemplate> target)
+        {
+            foreach (var child in target)
+            {
+                if (child.LoadedTemplates != null && child.LoadedTemplates.Count > 0)
+                {
+                    result.Add(child);
+                    CollectNode(result, child.LoadedTemplates);
+                }
+            }
+        }
+
+        public void OpenLayerNode(int layer)
+        {
+            CloseAllNode();
+            OpenLayerNode(layer, LoadedTemplates);
+        }
+
+        public void OpenLayerNode(int index, List<CatalogueTreeTemplate> target)
+        {
+            if (index > 0)
+            {
+                foreach (var child in target)
+                {
+                    child.OpenNode();
+                    if (child.LoadedTemplates != null && child.LoadedTemplates.Count > 0)
+                    {
+                        index--;
+                        OpenLayerNode(index, child.LoadedTemplates);
+                    }
+                }
             }
         }
     }

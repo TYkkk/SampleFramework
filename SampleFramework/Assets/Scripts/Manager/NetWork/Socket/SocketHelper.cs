@@ -262,7 +262,6 @@ namespace BaseFramework
 
             MemoryStream ms = new MemoryStream(data);
             BinaryReader br = new BinaryReader(ms);
-
             try
             {
                 mark = br.ReadChar();
@@ -283,7 +282,7 @@ namespace BaseFramework
                     messageData = br.ReadBytes(data.Length - HEADLENGTH);
                 }
             }
-            catch (Exception e)
+            catch (Exception)
             {
 
             }

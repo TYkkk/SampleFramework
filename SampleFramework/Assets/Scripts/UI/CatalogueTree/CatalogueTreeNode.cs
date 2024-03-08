@@ -9,15 +9,18 @@ namespace BaseFramework
     public class CatalogueTreeNode
     {
         public string NodeID;
+        public string ParentID;
         public CatalogueTreeNode ParentNode;
         public List<CatalogueTreeNode> ChildNodes;
         public string Content;
         public CatalogueTreeTemplate Template;
         public Action<CatalogueTreeNode> Action;
+        public object Data;
+        public string GUID;
 
         public CatalogueTreeNode()
         {
-            NodeID = Guid.NewGuid().ToString("N");
+            GUID = Guid.NewGuid().ToString("N");
         }
 
         public CatalogueTreeNode GetRootNode()

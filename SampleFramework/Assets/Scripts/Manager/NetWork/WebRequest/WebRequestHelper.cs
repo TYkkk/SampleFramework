@@ -14,19 +14,37 @@ namespace BaseFramework
     {
         public string AuthorizationToken = "";
 
-        private string serverHost = "http://192.168.110.194:9901/api/v1/system/service";
+        public const string ServerHost01 = "";
 
-        private IEnumerator API_Post(string query, string postData, ResultCallback callback = null, int retryCount = 3, RequestErrorCallback errorCallback = null)
+        private IEnumerator API_Post(string query, string postData, Dictionary<string, string> param, ResultCallback callback = null, string serverHost = ServerHost01, int retryCount = 3, RequestErrorCallback errorCallback = null)
         {
             var url = $"{serverHost}/{query}";
+
+            if (param != null)
+            {
+                string paramUrl = "";
+                foreach (var child in param.Keys)
+                {
+                    paramUrl += $"{child}={param[child]}&";
+                }
+
+                url = $"{url}?{paramUrl}";
+            }
+
+            MDebug.Log("url" + url);
 
             var request = UnityWebRequest.Post(url, "POST");
             request.timeout = 10;
             request.downloadHandler = new DownloadHandlerBuffer();
-            request.uploadHandler = new UploadHandlerRaw(System.Text.Encoding.UTF8.GetBytes(postData))
+            if (!string.IsNullOrEmpty(postData))
             {
-                contentType = "application/json"
-            };
+                request.uploadHandler = new UploadHandlerRaw(System.Text.Encoding.UTF8.GetBytes(postData))
+                {
+                    contentType = "application/json"
+                };
+            }
+
+            MDebug.Log("发送数据：" + postData);
 
             if (!string.IsNullOrEmpty(AuthorizationToken))
             {
@@ -35,14 +53,14 @@ namespace BaseFramework
 
             yield return request.SendWebRequest();
 
-            if (request.isNetworkError || request.isHttpError)
+            if (request.isHttpError || request.isNetworkError)
             {
                 MDebug.LogError(request.error);
 
                 if (retryCount > 0)
                 {
                     retryCount--;
-                    yield return API_Post(query, postData, callback, retryCount);
+                    yield return API_Post(query, postData, param, callback, serverHost, retryCount, errorCallback);
                 }
                 else
                 {
@@ -58,12 +76,12 @@ namespace BaseFramework
             callback?.Invoke(resultData.retCode, resultData.data, resultData.paging);
         }
 
-        public void CallPostApi(string query, string postData, ResultCallback callback = null, int retryCount = 3, RequestErrorCallback errorCallback = null)
+        public void CallPostApi(string query, string postData, Dictionary<string, string> param = null, ResultCallback callback = null, string serverHost = ServerHost01, int retryCount = 3, RequestErrorCallback errorCallback = null)
         {
-            StartCoroutine(API_Post(query, postData, callback, retryCount, errorCallback));
+            StartCoroutine(API_Post(query, postData, param, callback, serverHost, retryCount, errorCallback));
         }
 
-        private IEnumerator API_Get(string query, Dictionary<string, string> param = null, ResultCallback callback = null, int retryCount = 3, RequestErrorCallback errorCallback = null)
+        private IEnumerator API_Get(string query, Dictionary<string, string> param = null, ResultCallback callback = null, string serverHost = ServerHost01, int retryCount = 3, RequestErrorCallback errorCallback = null)
         {
             var url = $"{serverHost}/{query}";
 
@@ -86,16 +104,18 @@ namespace BaseFramework
                 request.SetRequestHeader("Authorization", AuthorizationToken);
             }
 
+            MDebug.Log("GetUrl:" + url);
+
             yield return request.SendWebRequest();
 
-            if (request.isNetworkError || request.isHttpError)
+            if (request.isHttpError || request.isNetworkError)
             {
                 MDebug.LogError(request.error);
 
                 if (retryCount > 0)
                 {
                     retryCount--;
-                    yield return API_Get(query, param, callback, retryCount);
+                    yield return API_Get(query, param, callback, serverHost, retryCount, errorCallback);
                 }
                 else
                 {
@@ -111,9 +131,9 @@ namespace BaseFramework
             callback?.Invoke(resultData.retCode, resultData.data, resultData.paging);
         }
 
-        public void CallGetApi(string query, Dictionary<string, string> param = null, ResultCallback callback = null, int retryCount = 3, RequestErrorCallback errorCallback = null)
+        public void CallGetApi(string query, Dictionary<string, string> param = null, ResultCallback callback = null, string serverHost = ServerHost01, int retryCount = 3, RequestErrorCallback errorCallback = null)
         {
-            StartCoroutine(API_Get(query, param, callback, retryCount, errorCallback));
+            StartCoroutine(API_Get(query, param, callback, serverHost, retryCount, errorCallback));
         }
     }
 

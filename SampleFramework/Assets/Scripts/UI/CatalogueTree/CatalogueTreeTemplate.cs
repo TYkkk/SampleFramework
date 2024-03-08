@@ -8,7 +8,7 @@ using UnityEngine.UI;
 
 namespace BaseFramework
 {
-    public class CatalogueTreeTemplate : MonoBehaviour
+    public class CatalogueTreeTemplate : BaseMonoBehaviour
     {
         public int AnchorsInterval = 30;
 
@@ -26,28 +26,36 @@ namespace BaseFramework
 
         public Action<CatalogueTreeNode> SelectAction;
 
-        public GameObject IconObj;
+        public GameObject SelectFlag;
 
         public float DefaultHeight { get; private set; }
+
+        public List<CatalogueTreeTemplate> LoadedTemplates = new List<CatalogueTreeTemplate>();
+
+        public bool IsSelect = false;
+
+        public int Layer = -1;
+
+        [HideInInspector]
+        public CatalogueTreePanel DependPanel;
 
         private bool isOpen = false;
 
         private CatalogueTreeNode nodeData;
-        private List<CatalogueTreeTemplate> loadedTemplates = new List<CatalogueTreeTemplate>();
 
         private Quaternion arrowCloseRotation = Quaternion.Euler(0, 0, 90);
         private Quaternion arrowOpenRotation = Quaternion.Euler(Vector3.zero);
 
-        private CatalogueTreePanel dependPanel;
+        private Action<CatalogueTreeNode> clickedEvent;
 
-        private void Awake()
+        public virtual void Awake()
         {
             ArrowBtn.onClick.AddListener(ArrowBtnClicked);
             ContentBtn.onClick.AddListener(ContentBtnClicked);
             DefaultHeight = MainRectTransform.rect.height;
         }
 
-        public void SetData(CatalogueTreeNode nodeData, int index, Action<CatalogueTreeNode> childClickedEvent, CatalogueTreePanel dependPanel)
+        public virtual void SetData(CatalogueTreeNode nodeData, int index, Action<CatalogueTreeNode> childClickedEvent, CatalogueTreePanel dependPanel)
         {
             ClearLoadedTemplate();
 
@@ -55,7 +63,11 @@ namespace BaseFramework
 
             this.nodeData.Template = this;
 
-            this.dependPanel = dependPanel;
+            this.DependPanel = dependPanel;
+
+            Layer = index;
+
+            clickedEvent = childClickedEvent;
 
             isOpen = false;
 
@@ -63,41 +75,58 @@ namespace BaseFramework
 
             ArrowRectTransform.localRotation = arrowCloseRotation;
 
-            InitAnchorsRectTransformPos(index);
+            InitAnchorsRectTransformPos(Layer);
 
-            gameObject.SetActive(index == 0);
+            gameObject.SetActive(Layer == 0);
 
-            if (this.nodeData.ChildNodes == null || this.nodeData.ChildNodes.Count == 0)
+            if (IsSelect)
             {
-                ArrowRectTransform.gameObject.SetActive(false);
-                IconObj.SetActive(true);
-                ArrowBtn.enabled = false;
+                Select();
             }
             else
             {
-                IconObj.SetActive(false);
+                UnSelect();
+            }
+
+            if (this.nodeData.ChildNodes != null && this.nodeData.ChildNodes.Count > 0)
+            {
                 foreach (var child in this.nodeData.ChildNodes)
                 {
-                    var template = CatalogueTreeUtility.CreateTemplate(transform);
-                    template.SetData(child, index + 1, childClickedEvent, this.dependPanel);
-                    template.SelectAction = childClickedEvent;
-                    if (child != null && child.Action != null)
-                    {
-                        template.SelectAction += child.Action;
-                    }
-                    loadedTemplates.Add(template);
+                    CatalogueTreeUtility.CreateTemplate(MainRectTransform, this.DependPanel.TemplatePath, child, Layer + 1, clickedEvent, this.DependPanel, LoadedTemplates);
                 }
             }
+
+            UpdateArrowByChildNodesChanged();
+        }
+
+        public void AddNode(CatalogueTreeNode node)
+        {
+            var createTemplate = CatalogueTreeUtility.CreateTemplate(MainRectTransform, this.DependPanel.TemplatePath, node, Layer + 1, clickedEvent, this.DependPanel, LoadedTemplates);
+            if (!isOpen)
+            {
+                UpdateArrowByChildNodesChanged();
+            }
+            else
+            {
+                createTemplate.gameObject.SetActive(true);
+                createTemplate.AddParentSize(createTemplate.MainRectTransform.sizeDelta.y);
+            }
+        }
+
+        private void UpdateArrowByChildNodesChanged()
+        {
+            ArrowRectTransform.gameObject.SetActive(nodeData.ChildNodes != null && nodeData.ChildNodes.Count > 0);
+            ArrowBtn.enabled = nodeData.ChildNodes != null && nodeData.ChildNodes.Count > 0;
         }
 
         private void ClearLoadedTemplate()
         {
-            for (int i = 0; i < loadedTemplates.Count; i++)
+            for (int i = 0; i < LoadedTemplates.Count; i++)
             {
-                Destroy(loadedTemplates[i].gameObject);
+                Destroy(LoadedTemplates[i].gameObject);
             }
 
-            loadedTemplates.Clear();
+            LoadedTemplates.Clear();
         }
 
         public void InitAnchorsRectTransformPos(int index)
@@ -129,7 +158,7 @@ namespace BaseFramework
 
         public void OpenNode()
         {
-            if (isOpen)
+            if (isOpen || LoadedTemplates.Count == 0)
             {
                 return;
             }
@@ -147,7 +176,7 @@ namespace BaseFramework
 
         public void CloseNode()
         {
-            if (!isOpen)
+            if (!isOpen || LoadedTemplates.Count == 0)
             {
                 return;
             }
@@ -163,7 +192,7 @@ namespace BaseFramework
             isOpen = false;
         }
 
-        private void OnDestroy()
+        public virtual void OnDestroy()
         {
             ArrowBtn.onClick.RemoveListener(ArrowBtnClicked);
             ContentBtn.onClick.RemoveListener(ContentBtnClicked);
@@ -171,18 +200,37 @@ namespace BaseFramework
 
         public void Select()
         {
-            ContentText.color = new Color(0.3098039f, 0.8627451f, 0.8196079f);
+            SelectFlag.gameObject.SetActive(true);
+            IsSelect = true;
         }
 
         public void UnSelect()
         {
-            ContentText.color = Color.white;
+            SelectFlag.gameObject.SetActive(false);
+            IsSelect = false;
         }
 
         private void ContentBtnClicked()
         {
-            dependPanel.SelectNode(nodeData);
+            //dependPanel.SelectNode(nodeData);
             SelectAction?.Invoke(nodeData);
+        }
+
+        public void SelectEvent()
+        {
+            if (IsSelect)
+            {
+                UnSelect();
+            }
+            else
+            {
+                Select();
+            }
+        }
+
+        public CatalogueTreeNode GetNode()
+        {
+            return nodeData;
         }
     }
 }
