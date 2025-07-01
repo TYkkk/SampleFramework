@@ -51,7 +51,7 @@ public static class WindowsFileHandle
         }
     }
 
-    public static OpenFileName SelectFile()
+    public static OpenFileName SelectFile(string pathKey)
     {
         OpenFileName openFileName = new OpenFileName();
         openFileName.structSize = Marshal.SizeOf(openFileName);
@@ -60,11 +60,24 @@ public static class WindowsFileHandle
         openFileName.maxFile = openFileName.file.Length;
         openFileName.fileTitle = new string(new char[64]);
         openFileName.maxFileTitle = openFileName.fileTitle.Length;
-        openFileName.initialDir = Application.dataPath.Replace('/', '\\');//默认路径
-        openFileName.title = "窗口标题";
+        string path = PlayerPrefs.GetString(pathKey, "");
+        if (string.IsNullOrEmpty(path))
+        {
+            openFileName.initialDir = Application.dataPath;
+        }
+        else
+        {
+            openFileName.initialDir = path;
+        }
+        openFileName.title = "文件选择";
         openFileName.flags = 0x00080000 | 0x00001000 | 0x00000800 | 0x00000008;
 
         LocalDialog.GetOpenFileName(openFileName);
+
+        if (!string.IsNullOrEmpty(openFileName.file) && openFileName.fileOffset <= 0)
+        {
+            PlayerPrefs.SetString(pathKey, openFileName.file.Substring(0, openFileName.fileOffset));
+        }
         return openFileName;
     }
 }
